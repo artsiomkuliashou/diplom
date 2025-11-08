@@ -25,3 +25,15 @@
 - Go 1.23+
 - PostgreSQL 15+
 
+### Тесты
+Запуск тестов
+```bash
+go test -v ./internal/auth/ ./internal/handlers/ -tags=unit -coverprofile=coverage.out
+```
+Преобразование отчета в html
+```bash
+go tool cover -html=coverage.out -o coverage.html
+```
+
+> [!IMPORTANT]
+> Создать дополнительный контейнер для отображения результатов теста в браузере
