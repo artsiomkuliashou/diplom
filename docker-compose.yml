@@ -50,7 +50,7 @@ services:
       timeout: 5s
       retries: 5
     logging:
-      driver: "jsin-file"
+      driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"       
