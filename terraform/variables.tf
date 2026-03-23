@@ -46,6 +46,6 @@ variable "public_key_path" {
 }
 
 variable "ami_id" {
-  description = "AMI ID for EC2 instances (Ubuntu 22.04)"
+  description = "AMI ID for EC2 instances (Ubuntu 24.04)"
   type        = string
 }

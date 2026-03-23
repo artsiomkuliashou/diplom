@@ -1,0 +1,9 @@
+aws_region              = "eu-central-1"
+project_name            = "habit-tracker-214023032026"
+vpc_cidr                = "10.0.0.0/16"
+public_subnet_cidr      = "10.0.1.0/24"
+app_instance_type       = "t3.micro"
+monitoring_instance_type = "t3.small"
+key_name                = "habit-tracker-key"
+public_key_path         = "~/.ssh/id_ed25519.pub"
+ami_id                  = "ami-05852c5f195d545ea" # Ubuntu 24.04 LTS eu-central-1 (verify in AWS Console)
