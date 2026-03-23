@@ -1,0 +1,5 @@
+---
+deploy_dir: /home/ubuntu/app
+registry_url: ""
+registry_user: ""
+registry_password: ""
