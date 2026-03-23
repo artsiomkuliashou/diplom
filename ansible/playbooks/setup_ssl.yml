@@ -1,0 +1,6 @@
+---
+- name: Setup SSL/TLS with Let's Encrypt
+  hosts: app_servers
+  become: yes
+  roles:
+    - nginx_ssl

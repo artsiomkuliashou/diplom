@@ -1,0 +1,77 @@
+---
+- name: Create monitoring directory
+  file:
+    path: "{{ deploy_dir }}/monitoring"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: Create Prometheus config directory
+  file:
+    path: "{{ deploy_dir }}/monitoring/prometheus"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: Create Grafana provisioning directories
+  file:
+    path: "{{ deploy_dir }}/monitoring/grafana/{{ item }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  loop:
+    - provisioning/datasources
+    - provisioning/dashboards
+    - dashboards
+
+- name: Copy docker-compose for monitoring
+  template:
+    src: docker-compose.monitoring.yml.j2
+    dest: "{{ deploy_dir }}/monitoring/docker-compose.yml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  notify: Restart monitoring
+
+- name: Copy Prometheus config
+  template:
+    src: prometheus.yml.j2
+    dest: "{{ deploy_dir }}/monitoring/prometheus/prometheus.yml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  notify: Restart monitoring
+
+- name: Copy Grafana datasource config
+  template:
+    src: grafana-datasources.yml.j2
+    dest: "{{ deploy_dir }}/monitoring/grafana/provisioning/datasources/datasources.yml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: Copy Grafana dashboard provisioning config
+  template:
+    src: grafana-dashboards.yml.j2
+    dest: "{{ deploy_dir }}/monitoring/grafana/provisioning/dashboards/dashboards.yml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: Copy Grafana dashboards
+  copy:
+    src: "dashboards/"
+    dest: "{{ deploy_dir }}/monitoring/grafana/dashboards/"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: Start monitoring stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ deploy_dir }}/monitoring"
+    pull: always
+    state: present
+
+- name: Wait for Grafana to be ready
+  uri:
+    url: "http://localhost:{{ grafana_port }}/api/health"
+    status_code: 200
+  register: grafana_health
+  retries: 10
+  delay: 5
+  until: grafana_health.status == 200

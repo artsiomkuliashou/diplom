@@ -1,0 +1,62 @@
+---
+- name: Create deploy directory
+  file:
+    path: "{{ deploy_dir }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+
+- name: Create nginx config directory
+  file:
+    path: "{{ deploy_dir }}/nginx"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: Copy docker-compose file
+  template:
+    src: docker-compose.app.yml.j2
+    dest: "{{ deploy_dir }}/docker-compose.yml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  notify: Restart app
+
+- name: Copy nginx config
+  template:
+    src: nginx.conf.j2
+    dest: "{{ deploy_dir }}/nginx/nginx.conf"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  notify: Restart app
+
+- name: Create .env file
+  template:
+    src: env.j2
+    dest: "{{ deploy_dir }}/.env"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
+  notify: Restart app
+
+- name: Login to GitLab Container Registry
+  community.docker.docker_login:
+    registry_url: "{{ registry_url }}"
+    username: "{{ registry_user }}"
+    password: "{{ registry_password }}"
+  when: registry_password | length > 0
+
+- name: Pull and start application
+  community.docker.docker_compose_v2:
+    project_src: "{{ deploy_dir }}"
+    pull: always
+    state: present
+
+- name: Wait for app to be healthy
+  uri:
+    url: "http://localhost:80/login"
+    status_code: 200
+  register: health_check
+  retries: 10
+  delay: 5
+  until: health_check.status == 200

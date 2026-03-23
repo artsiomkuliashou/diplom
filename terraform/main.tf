@@ -6,7 +6,12 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-  }
+    
+    local = {
+      source  = "hashicorp/local"
+      version = "~> 2.0"
+    }
+  }  
 
   # S3 backend (раскомментировать после создания бакета через storage.tf)
   # backend "s3" {

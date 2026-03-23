@@ -1,0 +1,61 @@
+---
+- name: Install Certbot
+  apt:
+    name:
+      - certbot
+    state: present
+    update_cache: yes
+
+- name: Check if certificate already exists
+  stat:
+    path: "/etc/letsencrypt/live/{{ domain }}/fullchain.pem"
+  register: cert_file
+
+- name: Stop nginx for initial certificate
+  community.docker.docker_compose_v2:
+    project_src: "{{ deploy_dir }}"
+    services:
+      - nginx
+    state: stopped
+  when: not cert_file.stat.exists
+
+- name: Obtain SSL certificate
+  command: >
+    certbot certonly --standalone
+    --non-interactive
+    --agree-tos
+    --email {{ certbot_email | default('admin@' + domain) }}
+    -d {{ domain }}
+  when: not cert_file.stat.exists
+
+- name: Deploy HTTPS nginx config
+  template:
+    src: nginx-ssl.conf.j2
+    dest: "{{ deploy_dir }}/nginx/nginx.conf"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: Restart app stack with HTTPS
+  community.docker.docker_compose_v2:
+    project_src: "{{ deploy_dir }}"
+    state: restarted
+
+- name: Setup auto-renewal cron job
+  cron:
+    name: "Renew Let's Encrypt certificates"
+    minute: "0"
+    hour: "3"
+    day: "*/7"
+    job: "certbot renew --quiet && docker restart {{ project_name }}_nginx"
+    user: root
+
+- name: Verify HTTPS is working
+  uri:
+    url: "https://{{ domain }}/login"
+    status_code: 200
+    validate_certs: yes
+  register: https_check
+  retries: 5
+  delay: 5
+  until: https_check.status == 200
+  ignore_errors: yes

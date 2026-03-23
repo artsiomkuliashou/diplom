@@ -1,0 +1,8 @@
+[app_servers]
+app ansible_host=${app_ip}
+
+[monitoring_servers]
+monitoring ansible_host=${monitoring_ip}
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3

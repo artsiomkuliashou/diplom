@@ -1,0 +1,61 @@
+---
+- name: Create logging directory
+  file:
+    path: "{{ deploy_dir }}/monitoring/logging"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: Create Logstash pipeline directory
+  file:
+    path: "{{ deploy_dir }}/monitoring/logging/logstash/pipeline"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
+- name: Copy ELK docker-compose
+  template:
+    src: docker-compose.elk.yml.j2
+    dest: "{{ deploy_dir }}/monitoring/logging/docker-compose.yml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  notify: Restart ELK
+
+- name: Copy Logstash pipeline config
+  template:
+    src: logstash.conf.j2
+    dest: "{{ deploy_dir }}/monitoring/logging/logstash/pipeline/logstash.conf"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  notify: Restart ELK
+
+- name: Set vm.max_map_count for Elasticsearch
+  sysctl:
+    name: vm.max_map_count
+    value: "262144"
+    state: present
+    reload: yes
+
+- name: Start ELK stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ deploy_dir }}/monitoring/logging"
+    pull: always
+    state: present
+
+- name: Wait for Elasticsearch to be ready
+  uri:
+    url: "http://localhost:{{ elasticsearch_port }}/_cluster/health"
+    status_code: 200
+  register: es_health
+  retries: 20
+  delay: 10
+  until: es_health.status == 200
+
+- name: Wait for Kibana to be ready
+  uri:
+    url: "http://localhost:{{ kibana_port }}/api/status"
+    status_code: 200
+  register: kibana_health
+  retries: 20
+  delay: 10
+  until: kibana_health.status == 200

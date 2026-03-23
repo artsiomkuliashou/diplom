@@ -1,0 +1,7 @@
+---
+- name: Deploy monitoring stack to monitoring server
+  hosts: monitoring_servers
+  become: yes
+  roles:
+    - monitoring
+    - logging
