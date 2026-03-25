@@ -1,7 +1,7 @@
 ---
 # Project
 project_name: habit-tracker
-deploy_dir: /opt/{{ project_name }}
+deploy_dir: /opt/habit-tracker
 
 # Domain (replace with real domain)
 domain: example.com
