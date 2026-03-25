@@ -14,6 +14,13 @@
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
 
+- name: Copy init.sql for database
+  copy:
+    src: init.sql
+    dest: "{{ deploy_dir }}/init.sql"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+
 - name: Copy docker-compose file
   template:
     src: docker-compose.app.yml.j2
@@ -26,6 +33,14 @@
   template:
     src: nginx.conf.j2
     dest: "{{ deploy_dir }}/nginx/nginx.conf"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  notify: Restart app
+
+- name: Copy Filebeat config
+  template:
+    src: filebeat.yml.j2
+    dest: "{{ deploy_dir }}/filebeat.yml"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
   notify: Restart app
