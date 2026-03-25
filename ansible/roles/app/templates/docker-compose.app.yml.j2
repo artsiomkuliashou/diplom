@@ -55,7 +55,7 @@ services:
       database:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--spider", "http://localhost:8080/login"]
+      test: ["CMD-SHELL", "wget --server-response --spider http://localhost:8080/login 2>&1 | grep -q 'HTTP'"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -108,6 +108,7 @@ services:
     container_name: {{ project_name }}_filebeat
     restart: unless-stopped
     user: root
+    command: filebeat -e -strict.perms=false
     volumes:
       - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro

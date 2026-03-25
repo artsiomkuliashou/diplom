@@ -10,7 +10,7 @@ domain: example.com
 registry_url: registry.gitlab.com
 registry_user: "{{ vault_registry_user | default('gitlab-ci-token') }}"
 registry_password: "{{ vault_registry_password | default('') }}"
-app_image: "{{ registry_url }}/YOUR_GROUP/YOUR_PROJECT/habit-tracker:latest"
+app_image: "registry.gitlab.com/kulldod/habit-tracker:latest"
 
 # Database
 db_name: habitdb
