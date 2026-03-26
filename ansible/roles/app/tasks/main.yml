@@ -59,6 +59,8 @@
     project_src: "{{ deploy_dir }}"
     pull: always
     state: present
+  environment:
+    PATH: "/usr/bin:/usr/local/bin:/usr/sbin:{{ ansible_env.PATH }}"
 
 - name: Wait for app to be healthy
   uri:
