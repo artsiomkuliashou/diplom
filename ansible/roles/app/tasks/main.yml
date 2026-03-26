@@ -54,13 +54,6 @@
     mode: "0600"
   notify: Restart app
 
-- name: Login to GitLab Container Registry
-  community.docker.docker_login:
-    registry_url: "{{ registry_url }}"
-    username: "{{ registry_user }}"
-    password: "{{ registry_password }}"
-  when: registry_password | length > 0
-
 - name: Pull and start application
   community.docker.docker_compose_v2:
     project_src: "{{ deploy_dir }}"
