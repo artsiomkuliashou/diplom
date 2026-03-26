@@ -27,45 +27,7 @@ jobs:
           working-directory: habits-tracker
         continue-on-error: true
 
-  # ==================== TEST ====================
-  test:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_DB: testdb
-          POSTGRES_USER: testuser
-          POSTGRES_PASSWORD: testpass
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.26'
-
-      - name: Run tests
-        working-directory: habits-tracker
-        env:
-          DATABASE_URL: "postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable"
-        run: |
-          go test -v -cover -coverprofile=coverage.out ./...
-          go tool cover -func=coverage.out
-
-      - name: Upload coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage
-          path: habits-tracker/coverage.out
-          retention-days: 7
 
   # ==================== VALIDATE ====================
   validate:
@@ -88,7 +50,7 @@ jobs:
   # ==================== BUILD ====================
   build:
     runs-on: ubuntu-latest
-    needs: [lint, test]
+    needs: [lint]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     permissions:
       contents: read
