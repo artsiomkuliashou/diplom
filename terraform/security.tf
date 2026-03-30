@@ -49,6 +49,15 @@ resource "aws_security_group" "app" {
     cidr_blocks = [var.vpc_cidr]
   }
 
+  # PostgreSQL Exporter (from monitoring server within VPC)
+  ingress {
+    description = "PostgreSQL Exporter"
+    from_port   = 9187
+    to_port     = 9187
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0

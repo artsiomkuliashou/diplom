@@ -28,6 +28,6 @@ elasticsearch_port: 9200
 logstash_port: 5044
 kibana_port: 5601
 
-# App server IP (for Prometheus scraping)
-app_server_ip: "{{ hostvars['app']['ansible_host'] }}"
+# App server IP (private IP for Prometheus scraping within VPC)
+app_server_ip: "10.0.1.74"
 monitoring_server_ip: "{{ hostvars['monitoring']['ansible_host'] }}"
