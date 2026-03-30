@@ -64,12 +64,12 @@
       "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "expr": "rate(node_network_receive_bytes_total{device=\"ens5\"}[5m])",
+          "expr": "rate(node_network_receive_bytes_total{device!=\"lo\"}[5m])",
           "legendFormat": "RX",
           "refId": "A"
         },
         {
-          "expr": "rate(node_network_transmit_bytes_total{device=\"ens5\"}[5m])",
+          "expr": "rate(node_network_transmit_bytes_total{device!=\"lo\"}[5m])",
           "legendFormat": "TX",
           "refId": "B"
         }
