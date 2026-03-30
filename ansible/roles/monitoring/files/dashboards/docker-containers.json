@@ -3,18 +3,18 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "id": null,
   "links": [],
   "panels": [
     {
       "title": "Container CPU Usage",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "expr": "rate(container_cpu_usage_seconds_total{name!=\"\"}[5m]) * 100",
-          "legendFormat": "{{ name }}"
+          "expr": "rate(container_cpu_usage_seconds_total{name=~\"habit-tracker.*\"}[5m]) * 100",
+          "legendFormat": "{{name}}",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
@@ -25,11 +25,12 @@
       "title": "Container Memory Usage",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "expr": "container_memory_usage_bytes{name!=\"\"}",
-          "legendFormat": "{{ name }}"
+          "expr": "container_memory_usage_bytes{name=~\"habit-tracker.*\"}",
+          "legendFormat": "{{name}}",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
@@ -40,11 +41,12 @@
       "title": "Container Network RX",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "expr": "rate(container_network_receive_bytes_total{name!=\"\"}[5m])",
-          "legendFormat": "{{ name }}"
+          "expr": "rate(container_network_receive_bytes_total{name=~\"habit-tracker.*\"}[5m])",
+          "legendFormat": "{{name}}",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
@@ -55,11 +57,12 @@
       "title": "Container Network TX",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "expr": "rate(container_network_transmit_bytes_total{name!=\"\"}[5m])",
-          "legendFormat": "{{ name }}"
+          "expr": "rate(container_network_transmit_bytes_total{name=~\"habit-tracker.*\"}[5m])",
+          "legendFormat": "{{name}}",
+          "refId": "A"
         }
       ],
       "fieldConfig": {
