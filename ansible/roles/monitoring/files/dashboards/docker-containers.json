@@ -6,31 +6,86 @@
   "links": [],
   "panels": [
     {
-      "title": "Container CPU Usage",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "title": "Running Containers",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "expr": "rate(container_cpu_usage_seconds_total{name=~\"habit-tracker.*\"}[5m]) * 100",
-          "legendFormat": "{{name}}",
+          "expr": "engine_daemon_container_states_containers{state=\"running\"}",
+          "legendFormat": "Running",
           "refId": "A"
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "percent" }
-      }
+        "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } }
+      },
+      "options": { "colorMode": "value" }
     },
     {
-      "title": "Container Memory Usage",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "title": "Stopped Containers",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "expr": "container_memory_usage_bytes{name=~\"habit-tracker.*\"}",
-          "legendFormat": "{{name}}",
+          "expr": "engine_daemon_container_states_containers{state=\"stopped\"}",
+          "legendFormat": "Stopped",
           "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] } }
+      },
+      "options": { "colorMode": "value" }
+    },
+    {
+      "title": "Container Actions Duration",
+      "type": "timeseries",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "rate(engine_daemon_container_actions_seconds_sum[5m])",
+          "legendFormat": "{{action}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s" }
+      }
+    },
+    {
+      "title": "Host CPU Usage (all containers)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "100 - (avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+          "legendFormat": "Total CPU %",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "min": 0 }
+      }
+    },
+    {
+      "title": "Host Memory Usage",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "targets": [
+        {
+          "expr": "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes",
+          "legendFormat": "Used",
+          "refId": "A"
+        },
+        {
+          "expr": "node_memory_MemAvailable_bytes",
+          "legendFormat": "Available",
+          "refId": "B"
         }
       ],
       "fieldConfig": {
@@ -38,31 +93,41 @@
       }
     },
     {
-      "title": "Container Network RX",
+      "title": "Docker Engine Health Checks",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
       "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "expr": "rate(container_network_receive_bytes_total{name=~\"habit-tracker.*\"}[5m])",
-          "legendFormat": "{{name}}",
+          "expr": "engine_daemon_health_checks_total",
+          "legendFormat": "Health Checks Total",
           "refId": "A"
+        },
+        {
+          "expr": "engine_daemon_health_checks_failed_total",
+          "legendFormat": "Health Checks Failed",
+          "refId": "B"
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "Bps" }
+        "defaults": { "unit": "short" }
       }
     },
     {
-      "title": "Container Network TX",
+      "title": "Network Traffic (Host)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
       "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
       "targets": [
         {
-          "expr": "rate(container_network_transmit_bytes_total{name=~\"habit-tracker.*\"}[5m])",
-          "legendFormat": "{{name}}",
+          "expr": "rate(node_network_receive_bytes_total{device=\"ens5\"}[5m])",
+          "legendFormat": "RX",
           "refId": "A"
+        },
+        {
+          "expr": "rate(node_network_transmit_bytes_total{device=\"ens5\"}[5m])",
+          "legendFormat": "TX",
+          "refId": "B"
         }
       ],
       "fieldConfig": {

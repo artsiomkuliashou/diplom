@@ -25,6 +25,13 @@ scrape_configs:
         labels:
           instance: 'app-server'
 
+  # Docker Engine metrics (app server)
+  - job_name: 'docker'
+    static_configs:
+      - targets: ['{{ app_server_ip }}:9323']
+        labels:
+          instance: 'app-server'
+
   # PostgreSQL Exporter (app server)
   - job_name: 'postgres'
     static_configs:

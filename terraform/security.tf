@@ -58,6 +58,15 @@ resource "aws_security_group" "app" {
     cidr_blocks = [var.vpc_cidr]
   }
 
+  # Docker Engine metrics (from monitoring server within VPC)
+  ingress {
+    description = "Docker Metrics"
+    from_port   = 9323
+    to_port     = 9323
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
