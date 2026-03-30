@@ -2,6 +2,9 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+  # rule_files:
+  #   - /etc/prometheus/alert_rules.yml
+
 scrape_configs:
   # Prometheus self-monitoring
   - job_name: 'prometheus'
@@ -22,8 +25,27 @@ scrape_configs:
         labels:
           instance: 'app-server'
 
-  # Application health (Blackbox-style via app server)
-  - job_name: 'app-health'
-    metrics_path: /login
+  # PostgreSQL Exporter (app server)
+  - job_name: 'postgres'
     static_configs:
-      - targets: ['{{ app_server_ip }}:80']
+      - targets: ['{{ app_server_ip }}:{{ postgres_exporter_port }}']
+        labels:
+          instance: 'app-server'
+
+  # Blackbox Exporter (HTTP probes)
+  - job_name: 'blackbox-http'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://{{ app_server_ip }}:80/login
+        labels:
+          instance: 'app-server'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: localhost:{{ blackbox_exporter_port }}

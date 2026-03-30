@@ -41,6 +41,8 @@
     project_src: "{{ deploy_dir }}/monitoring/logging"
     pull: always
     state: present
+  environment:
+    PATH: "/usr/bin:/usr/local/bin:/usr/sbin:{{ ansible_env.PATH }}"
 
 - name: Wait for Elasticsearch to be ready
   uri:

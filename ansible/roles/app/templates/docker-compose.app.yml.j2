@@ -103,6 +103,20 @@ services:
     networks:
       - app_network
 
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.16.0
+    container_name: {{ project_name }}_postgres_exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${DB_USER}:${DB_PASSWORD}@database:5432/${DB_NAME}?sslmode=disable"
+    ports:
+      - "{{ postgres_exporter_port }}:9187"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - app_network
+
   filebeat:
     image: docker.elastic.co/beats/filebeat:8.17.0
     container_name: {{ project_name }}_filebeat

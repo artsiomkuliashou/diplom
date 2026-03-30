@@ -20,6 +20,8 @@ prometheus_port: 9090
 grafana_port: 3000
 node_exporter_port: 9100
 cadvisor_port: 8081
+postgres_exporter_port: 9187
+blackbox_exporter_port: 9115
 
 # Logging
 elasticsearch_port: 9200

@@ -44,6 +44,24 @@ services:
     networks:
       - monitoring_network
 
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.25.0
+    container_name: {{ project_name }}_blackbox
+    restart: unless-stopped
+    ports:
+      - "{{ blackbox_exporter_port }}:9115"
+    volumes:
+      - ./blackbox/blackbox.yml:/config/blackbox.yml:ro
+    command:
+      - '--config.file=/config/blackbox.yml'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - monitoring_network
+
 volumes:
   prometheus_data:
     driver: local
