@@ -2,8 +2,8 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
-  # rule_files:
-  #   - /etc/prometheus/alert_rules.yml
+rule_files:
+  - /etc/prometheus/alert_rules.yml
 
 scrape_configs:
   # Prometheus self-monitoring
@@ -11,35 +11,49 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # Node Exporter (app server)
+  # Node Exporter (app servers)
   - job_name: 'node-exporter'
     static_configs:
       - targets: ['{{ app_server_ip }}:{{ node_exporter_port }}']
         labels:
-          instance: 'app-server'
+          instance: 'app-server-1'
+      - targets: ['{{ app2_server_ip }}:{{ node_exporter_port }}']
+        labels:
+          instance: 'app-server-2'
 
-  # cAdvisor (app server containers)
+  # cAdvisor (app servers)
   - job_name: 'cadvisor'
     static_configs:
       - targets: ['{{ app_server_ip }}:{{ cadvisor_port }}']
         labels:
-          instance: 'app-server'
+          instance: 'app-server-1'
+      - targets: ['{{ app2_server_ip }}:{{ cadvisor_port }}']
+        labels:
+          instance: 'app-server-2'
 
-  # Docker Engine metrics (app server)
+  # Docker Engine metrics (app servers)
   - job_name: 'docker'
     static_configs:
       - targets: ['{{ app_server_ip }}:9323']
         labels:
-          instance: 'app-server'
+          instance: 'app-server-1'
+      - targets: ['{{ app2_server_ip }}:9323']
+        labels:
+          instance: 'app-server-2'
 
-  # PostgreSQL Exporter (app server)
+  # PostgreSQL Exporter (primary + replica)
   - job_name: 'postgres'
     static_configs:
       - targets: ['{{ app_server_ip }}:{{ postgres_exporter_port }}']
         labels:
-          instance: 'app-server'
+          instance: 'app-server-1'
+          role: 'primary'
+      - targets: ['{{ app2_server_ip }}:{{ postgres_exporter_port }}']
+        labels:
+          instance: 'app-server-2'
+          role: 'replica'
 
-  # Blackbox Exporter (HTTP probes)
+  # Blackbox Exporter (HTTP probes for both app servers)
   - job_name: 'blackbox-http'
     metrics_path: /probe
     params:
@@ -47,8 +61,7 @@ scrape_configs:
     static_configs:
       - targets:
           - http://{{ app_server_ip }}:80/login
-        labels:
-          instance: 'app-server'
+          - http://{{ app2_server_ip }}:8080/login
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target

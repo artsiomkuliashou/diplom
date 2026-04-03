@@ -28,6 +28,14 @@ elasticsearch_port: 9200
 logstash_port: 5044
 kibana_port: 5601
 
-# App server IP (private IP for Prometheus scraping within VPC)
+# Network
+vpc_cidr: "10.0.0.0/16"
+
+# Server IPs (private, within VPC — updated by deploy.sh)
 app_server_ip: "10.0.1.74"
+app2_server_ip: "10.0.1.75"
 monitoring_server_ip: "10.0.1.177"
+
+# PostgreSQL replication
+pg_replication_user: replicator
+pg_replication_password: "{{ lookup('env', 'PG_REPL_PASSWORD') | default('repl_change_me', true) }}"

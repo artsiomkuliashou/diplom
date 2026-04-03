@@ -1,6 +1,12 @@
 ---
-- name: Deploy application to app server
-  hosts: app_servers
+- name: Deploy application to primary app server
+  hosts: app_primary
+  become: yes
+  roles:
+    - app
+
+- name: Deploy application to replica app server
+  hosts: app_replica
   become: yes
   roles:
     - app

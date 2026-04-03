@@ -1,0 +1,39 @@
+#!/bin/bash
+# Nginx Cold Standby Failover Script
+# Runs on app2 server, checks if app1 Nginx is alive
+# If app1 is down — starts standby Nginx on app2
+
+PRIMARY_IP="{{ app_server_ip }}"
+DEPLOY_DIR="{{ deploy_dir }}"
+LOG_FILE="$DEPLOY_DIR/failover.log"
+STANDBY_ACTIVE=false
+
+check_primary() {
+    curl -sf --connect-timeout 3 --max-time 5 "http://$PRIMARY_IP:80/nginx-health" > /dev/null 2>&1
+}
+
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') $1" >> "$LOG_FILE"
+}
+
+# Check if standby is already running
+if docker ps --format '{% raw %}{{.Names}}{% endraw %}' | grep -q "{{ project_name }}_nginx_standby"; then
+    STANDBY_ACTIVE=true
+fi
+
+if check_primary; then
+    # Primary is UP
+    if [ "$STANDBY_ACTIVE" = true ]; then
+        log "PRIMARY RECOVERED — stopping standby Nginx"
+        cd "$DEPLOY_DIR" && docker compose --profile standby down
+    fi
+else
+    # Primary is DOWN — check again to avoid false positive
+    sleep 5
+    if ! check_primary; then
+        if [ "$STANDBY_ACTIVE" = false ]; then
+            log "PRIMARY DOWN — starting standby Nginx"
+            cd "$DEPLOY_DIR" && docker compose --profile standby up -d nginx-standby
+        fi
+    fi
+fi

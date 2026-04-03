@@ -22,6 +22,25 @@ resource "aws_instance" "app" {
   }
 }
 
+# App Server 2 (replica)
+resource "aws_instance" "app2" {
+  ami                    = var.ami_id
+  instance_type          = var.app_instance_type
+  subnet_id              = aws_subnet.public.id
+  vpc_security_group_ids = [aws_security_group.app.id]
+  key_name               = aws_key_pair.deployer.key_name
+
+  root_block_device {
+    volume_size = 20
+    volume_type = "gp3"
+  }
+
+  tags = {
+    Name = "${var.project_name}-app2-server"
+    Role = "app2"
+  }
+}
+
 # Monitoring Server
 resource "aws_instance" "monitoring" {
   ami                    = var.ami_id
@@ -48,6 +67,16 @@ resource "aws_eip" "app" {
 
   tags = {
     Name = "${var.project_name}-app-eip"
+  }
+}
+
+# Elastic IP for App Server 2
+resource "aws_eip" "app2" {
+  instance = aws_instance.app2.id
+  domain   = "vpc"
+
+  tags = {
+    Name = "${var.project_name}-app2-eip"
   }
 }
 

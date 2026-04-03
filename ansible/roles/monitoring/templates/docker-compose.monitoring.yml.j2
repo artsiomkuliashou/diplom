@@ -9,6 +9,7 @@ services:
       - '--storage.tsdb.retention.time=30d'
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
       - prometheus_data:/prometheus
     ports:
       - "{{ prometheus_port }}:9090"

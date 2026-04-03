@@ -1,5 +1,12 @@
 [app_servers]
 app ansible_host=${app_ip}
+app2 ansible_host=${app2_ip}
+
+[app_primary]
+app ansible_host=${app_ip}
+
+[app_replica]
+app2 ansible_host=${app2_ip}
 
 [monitoring_servers]
 monitoring ansible_host=${monitoring_ip}

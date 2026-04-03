@@ -47,3 +47,28 @@ output "kibana_url" {
   description = "Kibana URL"
   value       = "http://${aws_eip.monitoring.public_ip}:5601"
 }
+
+output "app2_server_public_ip" {
+  description = "Public IP of the app2 server"
+  value       = aws_eip.app2.public_ip
+}
+
+output "ssh_app2_server" {
+  description = "SSH command for app2 server"
+  value       = "ssh -i ~/.ssh/${var.key_name} ubuntu@${aws_eip.app2.public_ip}"
+}
+
+output "app_server_private_ip" {
+  description = "Private IP of the app server"
+  value       = aws_instance.app.private_ip
+}
+
+output "app2_server_private_ip" {
+  description = "Private IP of the app2 server"
+  value       = aws_instance.app2.private_ip
+}
+
+output "monitoring_server_private_ip" {
+  description = "Private IP of the monitoring server"
+  value       = aws_instance.monitoring.private_ip
+}

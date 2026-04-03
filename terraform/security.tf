@@ -58,6 +58,24 @@ resource "aws_security_group" "app" {
     cidr_blocks = [var.vpc_cidr]
   }
 
+  # PostgreSQL replication (from app2 within VPC)
+  ingress {
+    description = "PostgreSQL Replication"
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  # App port for load balancing (from app1 nginx within VPC)
+  ingress {
+    description = "App Port for LB"
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
   # Docker Engine metrics (from monitoring server within VPC)
   ingress {
     description = "Docker Metrics"

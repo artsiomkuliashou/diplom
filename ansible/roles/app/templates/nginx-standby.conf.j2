@@ -1,36 +1,24 @@
-# Rate limiting zone
+# Standby Nginx — proxies only to local app instance
 limit_req_zone $binary_remote_addr zone=app_limit:10m rate=30r/s;
 
-# Upstream — Load Balancer
-upstream app_backend {
-    server app:8080;
-    server {{ app2_server_ip }}:8080 max_fails=3 fail_timeout=30s;
-}
-
-# HTTP
 server {
     listen 80;
     server_name _;
 
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
-
-    location = / {
-        return 301 /login;
-    }
-
-    # Health check endpoint for Nginx itself
     location /nginx-health {
         access_log off;
         return 200 "OK";
         add_header Content-Type text/plain;
     }
 
+    location = / {
+        return 301 /login;
+    }
+
     location / {
         limit_req zone=app_limit burst=50 nodelay;
 
-        proxy_pass http://app_backend;
+        proxy_pass http://app:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -38,6 +26,5 @@ server {
 
         proxy_connect_timeout 5s;
         proxy_read_timeout 30s;
-        proxy_next_upstream error timeout http_502 http_503;
     }
 }

@@ -13,6 +13,7 @@
     state: directory
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
+  when: inventory_hostname in groups['app_primary']
 
 - name: Copy init.sql for database
   copy:
@@ -20,22 +21,75 @@
     dest: "{{ deploy_dir }}/init.sql"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
+  when: inventory_hostname in groups['app_primary']
 
-- name: Copy docker-compose file
+- name: Copy primary replication init script
+  template:
+    src: init-primary.sh.j2
+    dest: "{{ deploy_dir }}/init-primary.sh"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+  when: inventory_hostname in groups['app_primary']
+
+- name: Copy docker-compose file (primary)
   template:
     src: docker-compose.app.yml.j2
     dest: "{{ deploy_dir }}/docker-compose.yml"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
   notify: Restart app
+  when: inventory_hostname in groups['app_primary']
 
-- name: Copy nginx config
+- name: Copy docker-compose file (replica)
+  template:
+    src: docker-compose.app2.yml.j2
+    dest: "{{ deploy_dir }}/docker-compose.yml"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  notify: Restart app
+  when: inventory_hostname in groups['app_replica']
+
+- name: Copy nginx config (primary LB)
   template:
     src: nginx.conf.j2
     dest: "{{ deploy_dir }}/nginx/nginx.conf"
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
   notify: Restart app
+  when: inventory_hostname in groups['app_primary']
+
+- name: Create nginx directory (replica standby)
+  file:
+    path: "{{ deploy_dir }}/nginx"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  when: inventory_hostname in groups['app_replica']
+
+- name: Copy nginx standby config (replica)
+  template:
+    src: nginx-standby.conf.j2
+    dest: "{{ deploy_dir }}/nginx/nginx.conf"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  when: inventory_hostname in groups['app_replica']
+
+- name: Copy failover script (replica)
+  template:
+    src: failover.sh.j2
+    dest: "{{ deploy_dir }}/failover.sh"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+  when: inventory_hostname in groups['app_replica']
+
+- name: Setup failover health check cron (every minute)
+  cron:
+    name: "Nginx failover check"
+    job: "{{ deploy_dir }}/failover.sh"
+    user: root
+  when: inventory_hostname in groups['app_replica']
 
 - name: Copy Filebeat config
   template:
@@ -54,6 +108,24 @@
     mode: "0600"
   notify: Restart app
 
+- name: Copy database backup script
+  template:
+    src: backup-db.sh.j2
+    dest: "{{ deploy_dir }}/backup-db.sh"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+  when: inventory_hostname in groups['app_primary']
+
+- name: Setup daily database backup cron
+  cron:
+    name: "PostgreSQL daily backup"
+    minute: "0"
+    hour: "2"
+    job: "{{ deploy_dir }}/backup-db.sh >> {{ deploy_dir }}/backups/backup.log 2>&1"
+    user: root
+  when: inventory_hostname in groups['app_primary']
+
 - name: Pull and start application
   community.docker.docker_compose_v2:
     project_src: "{{ deploy_dir }}"
@@ -64,9 +136,11 @@
 
 - name: Wait for app to be healthy
   uri:
-    url: "http://localhost:80/login"
-    status_code: 200
+    url: "{{ 'http://localhost:80/login' if inventory_hostname in groups['app_primary'] else 'http://localhost:8080/login' }}"
+    status_code:
+      - 200
+      - 401
   register: health_check
-  retries: 10
+  retries: 15
   delay: 5
-  until: health_check.status == 200
+  until: health_check.status in [200, 401]
