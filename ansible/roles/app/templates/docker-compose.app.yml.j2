@@ -123,7 +123,7 @@ services:
     container_name: {{ project_name }}_filebeat
     restart: unless-stopped
     user: root
-    command: filebeat -e -strict.perms=false
+    command: ["filebeat", "-e", "--strict.perms=false"]
     volumes:
       - ./filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
