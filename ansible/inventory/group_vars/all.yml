@@ -31,9 +31,9 @@ kibana_port: 5601
 # Network
 vpc_cidr: "10.0.0.0/16"
 
-# Server IPs (private, within VPC — updated by deploy.sh)
+# Server IPs (private, within VPC)
 app_server_ip: "10.0.1.74"
-app2_server_ip: "10.0.1.75"
+app2_server_ip: "10.0.1.139"
 monitoring_server_ip: "10.0.1.177"
 
 # PostgreSQL replication
