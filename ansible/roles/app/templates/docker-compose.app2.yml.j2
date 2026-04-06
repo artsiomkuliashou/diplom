@@ -4,22 +4,23 @@ services:
     container_name: {{ project_name }}_db_replica
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
       PGDATA: /var/lib/postgresql/data/pgdata
       PGPASSWORD: ${PG_REPL_PASSWORD}
-    command: >
-      bash -c "
-      if [ ! -f /var/lib/postgresql/data/pgdata/standby.signal ]; then
-        rm -rf /var/lib/postgresql/data/pgdata;
-        until pg_isready -h {{ app_server_ip }} -p 5432 -U {{ pg_replication_user }}; do
-          echo 'Waiting for primary...'; sleep 2;
-        done;
-        PGPASSWORD=${PG_REPL_PASSWORD} pg_basebackup -h {{ app_server_ip }} -p 5432 -U {{ pg_replication_user }} -D /var/lib/postgresql/data/pgdata -Fp -Xs -R;
-      fi;
-      exec postgres
-      "
+    entrypoint:
+      - bash
+      - -c
+      - |
+        if [ ! -f /var/lib/postgresql/data/pgdata/standby.signal ]; then
+          rm -rf /var/lib/postgresql/data/pgdata
+          chown postgres:postgres /var/lib/postgresql/data
+          until pg_isready -h {{ app_server_ip }} -p 5432 -U {{ pg_replication_user }}; do
+            echo 'Waiting for primary...'
+            sleep 2
+          done
+          su-exec postgres pg_basebackup -h {{ app_server_ip }} -p 5432 -U {{ pg_replication_user }} -D /var/lib/postgresql/data/pgdata -Fp -Xs -R
+        fi
+        chown -R postgres:postgres /var/lib/postgresql/data
+        exec su-exec postgres postgres -D /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_replica_data:/var/lib/postgresql/data
     ports:
