@@ -1,6 +1,6 @@
 # S3 bucket for Terraform state
 resource "aws_s3_bucket" "tfstate" {
-  bucket = "${var.project_name}-tfstate"
+  bucket = "${var.project_name}-tfstate-654654486478"
 
   lifecycle {
     prevent_destroy = true

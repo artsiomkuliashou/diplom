@@ -14,13 +14,13 @@ terraform {
   }  
 
   # S3 backend (раскомментировать после создания бакета через storage.tf)
-  # backend "s3" {
-  #   bucket         = "habit-tracker-tfstate"
-  #   key            = "terraform.tfstate"
-  #   region         = "eu-central-1"
-  #   dynamodb_table = "habit-tracker-tflock"
-  #   encrypt        = true
-  # }
+   backend "s3" {
+     bucket         = "habit-tracker-tfstate-654654486478"
+     key            = "terraform.tfstate"
+     region         = "eu-central-1"
+     dynamodb_table = "habit-tracker-tflock"
+     encrypt        = true
+   }
 }
 
 provider "aws" {
