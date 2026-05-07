@@ -1,0 +1,190 @@
+name: Infrastructure (Terraform + Ansible)
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Что выполнить'
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+          - ansible-deploy
+        default: plan
+
+env:
+  TF_VERSION: '1.9.5'
+  TF_WORKING_DIR: terraform
+  ANSIBLE_WORKING_DIR: ansible
+  AWS_REGION: eu-central-1
+
+jobs:
+  # ==================== TERRAFORM ====================
+  terraform:
+    if: ${{ inputs.action == 'plan' || inputs.action == 'apply' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      app_ip: ${{ steps.tf_outputs.outputs.app_ip }}
+      app2_ip: ${{ steps.tf_outputs.outputs.app2_ip }}
+      monitoring_ip: ${{ steps.tf_outputs.outputs.monitoring_ip }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Prepare SSH public key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PUBLIC_KEY }}" > ~/.ssh/id_rsa.pub
+          chmod 644 ~/.ssh/id_rsa.pub
+
+      - name: Generate terraform.tfvars
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          cat > terraform.tfvars <<EOF
+          aws_region               = "${{ env.AWS_REGION }}"
+          project_name             = "habit-tracker"
+          key_name                 = "habit-tracker-key"
+          public_key_path          = "~/.ssh/id_rsa.pub"
+          ami_id                   = "${{ secrets.AMI_ID }}"
+          app_instance_type        = "t2.micro"
+          monitoring_instance_type = "t3.small"
+          EOF
+
+      - name: Terraform Init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init -input=false
+
+      - name: Terraform Validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform validate
+
+      - name: Terraform Plan
+        if: ${{ inputs.action == 'plan' }}
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform plan -input=false -no-color
+
+      - name: Terraform Apply
+        if: ${{ inputs.action == 'apply' }}
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform apply -input=false -auto-approve
+
+      - name: Read Terraform outputs
+        if: ${{ inputs.action == 'apply' }}
+        id: tf_outputs
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          echo "app_ip=$(terraform output -raw app_public_ip)" >> "$GITHUB_OUTPUT"
+          echo "app2_ip=$(terraform output -raw app2_public_ip)" >> "$GITHUB_OUTPUT"
+          echo "monitoring_ip=$(terraform output -raw monitoring_public_ip)" >> "$GITHUB_OUTPUT"
+
+      - name: Upload generated inventory
+        if: ${{ inputs.action == 'apply' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ansible-inventory
+          path: |
+            ansible/inventory/hosts.ini
+            ansible/inventory/group_vars/all.yml
+          retention-days: 7
+
+  # ==================== ANSIBLE ====================
+  ansible:
+    needs: [terraform]
+    if: |
+      always() && (
+        inputs.action == 'ansible-deploy' ||
+        (inputs.action == 'apply' && needs.terraform.result == 'success')
+      )
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible
+        run: pip install ansible==9.* boto3 botocore
+
+      - name: Install Ansible collections
+        working-directory: ${{ env.ANSIBLE_WORKING_DIR }}
+        run: |
+          if [ -f requirements.yml ]; then
+            ansible-galaxy install -r requirements.yml
+          fi
+
+      - name: Setup SSH private key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Download generated inventory
+        if: ${{ inputs.action == 'apply' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ansible-inventory
+          path: ansible/inventory
+
+      - name: Wait for SSH on hosts
+        working-directory: ${{ env.ANSIBLE_WORKING_DIR }}
+        run: |
+          ansible all -i inventory/hosts.ini \
+            -m wait_for_connection \
+            -a 'timeout=300 delay=10'
+
+      - name: Run setup_common
+        working-directory: ${{ env.ANSIBLE_WORKING_DIR }}
+        run: ansible-playbook playbooks/setup_common.yml
+
+      - name: Run deploy_app
+        working-directory: ${{ env.ANSIBLE_WORKING_DIR }}
+        run: ansible-playbook playbooks/deploy_app.yml
+
+      - name: Run deploy_monitoring
+        working-directory: ${{ env.ANSIBLE_WORKING_DIR }}
+        run: ansible-playbook playbooks/deploy_monitoring.yml
+
+  # ==================== NOTIFY ====================
+  notify:
+    needs: [terraform, ansible]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram notification
+        env:
+          TF_RESULT: ${{ needs.terraform.result }}
+          ANSIBLE_RESULT: ${{ needs.ansible.result }}
+          ACTION: ${{ inputs.action }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TG_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TG_CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          if [ "$TF_RESULT" = "failure" ] || [ "$ANSIBLE_RESULT" = "failure" ]; then
+            STATUS="<b>❌ Infra pipeline failed</b>"
+          else
+            STATUS="<b>✅ Infra pipeline OK</b>"
+          fi
+          TEXT="${STATUS}%0A%0AAction: ${ACTION}%0AProject: ${REPO}%0ATerraform: ${TF_RESULT}%0AAnsible: ${ANSIBLE_RESULT}%0A%0A<a href='${RUN_URL}'>Workflow</a>"
+          curl -s -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+            -d chat_id="${TG_CHAT}" \
+            -d parse_mode="HTML" \
+            -d text="$TEXT"
