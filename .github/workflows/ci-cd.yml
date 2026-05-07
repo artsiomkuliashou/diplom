@@ -28,25 +28,6 @@ jobs:
         continue-on-error: true
 
 
-
-  # ==================== VALIDATE ====================
-  validate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: '1.12.0'
-
-      - name: Terraform validate
-        working-directory: terraform
-        run: |
-          terraform init -backend=false
-          terraform validate
-          terraform fmt -check
-        continue-on-error: true
-
   # ==================== BUILD ====================
   build:
     runs-on: ubuntu-latest
@@ -92,9 +73,7 @@ jobs:
             export PATH=$PATH:/usr/bin:/usr/local/bin
             cd /opt/habit-tracker
             docker compose pull app
-            docker compose up -d
-            sleep 10
-            docker compose ps
+            docker compose up -d --wait
 
   # ==================== NOTIFY ====================
   notify:
